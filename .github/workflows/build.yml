@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-apk:
-    name: Build Debug APK
+    name: Build APK
     runs-on: ubuntu-latest
 
     steps:
@@ -37,7 +37,7 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Upload APK
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: IVANNA-FUSION-PRO-debug
@@ -45,4 +45,6 @@ jobs:
           retention-days: 30
 
       - name: Info APK
-        run: ls -lh app/build/outputs/apk/debug/
+        run: |
+          echo "=== APK generado ==="
+          ls -lh app/build/outputs/apk/debug/

@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">IVANNA-FUSION PRO</string>
+    <string name="terms_title">TÉRMINOS Y CONDICIONES</string>
+    <string name="terms_warning">ADVERTENCIA: Queda estrictamente prohibida la duplicación, falsificación, distribución no autorizada o ingeniería inversa de este software. El incumplimiento conlleva acciones legales bajo las leyes de propiedad intelectual aplicables. Uso exclusivo del titular de la licencia.</string>
+    <string name="accept">ACEPTAR Y CONTINUAR</string>
+    <string name="experience">EXPERIENCE THE LEGENDS</string>
+    <string name="enter_app">ENTRAR A LA APP</string>
+    <string name="brand_tag">GORE TNS · LUPP-OR9</string>
 </resources>

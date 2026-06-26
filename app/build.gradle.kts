@@ -5,19 +5,23 @@ plugins {
 
 android {
     namespace = "com.ivanna.fusion.pro"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.ivanna.fusion.pro"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0-PRO"
+        targetSdk = 35
+        versionCode = 2
+        versionName = "1.1-PRO"
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+        }
+        debug {
+            applicationIdSuffix = ".debug"
+            isDebuggable = true
         }
     }
 
@@ -37,6 +41,12 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
     }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
 }
 
 dependencies {
@@ -47,4 +57,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.navigation:navigation-compose:2.7.7")
+    implementation("androidx.media3:media3-exoplayer:1.4.0")
+    implementation("androidx.media3:media3-ui:1.4.0")
 }

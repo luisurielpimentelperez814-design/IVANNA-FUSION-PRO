@@ -3,18 +3,25 @@ package com.ivanna.fusion.pro
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -24,9 +31,22 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
+// ─── Colors ──────────────────────────────────────────────────────────────────
+private val Carbon    = Color(0xFF0B0B0B)
+private val Surface1  = Color(0xFF111111)
+private val Surface2  = Color(0xFF181818)
+private val Border1   = Color(0xFF222222)
+private val CyanGlow  = Color(0xFF00F5FF)
+private val CyanDim   = Color(0x3300F5FF)
+private val TextPri   = Color(0xFFFFFFFF)
+private val TextSec   = Color(0xFF888888)
+private val TextMid   = Color(0xFFCCCCCC)
+
+// ─── Entry ───────────────────────────────────────────────────────────────────
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent { IvannaApp() }
     }
 }
@@ -34,109 +54,357 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun IvannaApp() {
     val nav = rememberNavController()
-    val bg = Color(0xFF0B0B0B)
-    val cyan = Color(0xFF00F5FF)
-    MaterialTheme(colorScheme = darkColorScheme(background = bg, surface = bg)) {
+    MaterialTheme(colorScheme = darkColorScheme(background = Carbon, surface = Surface1)) {
         NavHost(nav, startDestination = "splash") {
-            composable("splash") { SplashScreen(cyan) { nav.navigate("intro") } }
-            composable("intro") { IntroScreen(cyan) { nav.navigate("dashboard") } }
-            composable("dashboard") { DashboardScreen(cyan) }
+            composable("splash")    { SplashScreen   { nav.navigate("intro")      } }
+            composable("intro")     { IntroScreen    { nav.navigate("dashboard")  } }
+            composable("dashboard") { DashboardScreen()                            }
         }
     }
 }
 
+// ─── Splash ──────────────────────────────────────────────────────────────────
 @Composable
-fun SplashScreen(cyan: Color, onAccept: () -> Unit) {
-    Box(Modifier.fillMaxSize().background(Color(0xFF0B0B0B)), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
-            Text("IVANNA-FUSION", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-            Spacer(Modifier.height(8.dp))
-            Box(Modifier.height(2.dp).width(200.dp).background(cyan.copy(alpha = 0.6f)))
-            Spacer(Modifier.height(32.dp))
-            Text("TÉRMINOS Y CONDICIONES", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(12.dp))
+fun SplashScreen(onAccept: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Carbon)
+            .windowInsetsPadding(WindowInsets.systemBars),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 28.dp)
+        ) {
+            // Logo
             Text(
-                "ADVERTENCIA: Queda estrictamente prohibida la duplicación, falsificación, distribución no autorizada o ingeniería inversa de este software. El incumplimiento conlleva acciones legales.",
-                color = Color(0xFFCCCCCC), fontSize = 14.sp, textAlign = TextAlign.Center
+                "IVANNA-FUSION PRO",
+                color = TextPri,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 3.sp
             )
-            Spacer(Modifier.height(40.dp))
-            Button(onClick = onAccept,
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "GORE TNS · LUPP-OR9",
+                color = CyanGlow,
+                fontSize = 11.sp,
+                letterSpacing = 2.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            // Glowing separator
+            Box(
+                Modifier
+                    .height(1.dp)
+                    .width(220.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Color.Transparent, CyanGlow, Color.Transparent)
+                        )
+                    )
+            )
+            Spacer(Modifier.height(36.dp))
+            // Terms box
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Border1, RoundedCornerShape(12.dp))
+                    .background(Surface2, RoundedCornerShape(12.dp))
+                    .padding(16.dp)
+            ) {
+                Text(
+                    "TÉRMINOS Y CONDICIONES",
+                    color = CyanGlow,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "ADVERTENCIA: Queda estrictamente prohibida la duplicación, falsificación, " +
+                    "distribución no autorizada o ingeniería inversa de este software. " +
+                    "El incumplimiento conlleva acciones legales bajo las leyes de propiedad " +
+                    "intelectual aplicables. Uso exclusivo del titular de la licencia.",
+                    color = TextMid,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
+                    textAlign = TextAlign.Justify
+                )
+            }
+            Spacer(Modifier.height(32.dp))
+            Button(
+                onClick = onAccept,
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                modifier = Modifier.border(2.dp, cyan, RoundedCornerShape(24.dp)).height(48.dp).width(240.dp)
-            ) { Text("ACEPTAR Y CONTINUAR", color = Color.White) }
+                border = BorderStroke(2.dp, CyanGlow),
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+            ) {
+                Text(
+                    "ACEPTAR Y CONTINUAR",
+                    color = TextPri,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp
+                )
+            }
         }
     }
 }
 
+// ─── Intro ───────────────────────────────────────────────────────────────────
 @Composable
-fun IntroScreen(cyan: Color, onEnter: () -> Unit) {
-    Column(Modifier.fillMaxSize().background(Color(0xFF0B0B0B)).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Spacer(Modifier.height(24.dp))
-        Text("EXPERIENCE THE LEGENDS", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+fun IntroScreen(onEnter: () -> Unit) {
+    val bands = listOf(
+        "Grand Funk Railroad",
+        "Led Zeppelin",
+        "Rush",
+        "Budgie",
+        "Edgar Winter",
+        "Bachman-Turner Overdrive",
+        "Steve Miller Band"
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Carbon)
+            .windowInsetsPadding(WindowInsets.systemBars)
+            .padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(28.dp))
+        Text(
+            "EXPERIENCE THE LEGENDS",
+            color = TextPri,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.5.sp
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Audio procesado por IVANNA-FUSION PRO",
+            color = TextSec,
+            fontSize = 11.sp
+        )
         Spacer(Modifier.height(16.dp))
-        val bands = listOf("Grand Funk Railroad","Ted Nugent","Steve Miller Band","Led Zeppelin","Bachman-Turner Overdrive","Grand Funk Railroad","Ted Nugent")
-        LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             items(bands) { band ->
-                Box(Modifier.aspectRatio(16f/9f).shadow(4.dp, RoundedCornerShape(8.dp)).border(1.dp, cyan.copy(0.4f), RoundedCornerShape(8.dp)).background(Color(0xFF111111)),
-                    contentAlignment = Alignment.Center) {
-                    Text(band, color = Color(0xFF888888), fontSize = 10.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(4.dp))
+                Box(
+                    modifier = Modifier
+                        .aspectRatio(16f / 9f)
+                        .shadow(6.dp, RoundedCornerShape(8.dp))
+                        .background(Surface2, RoundedCornerShape(8.dp))
+                        .border(1.dp, CyanDim, RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(CyanGlow.copy(alpha = 0.5f))
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            band,
+                            color = TextSec,
+                            fontSize = 9.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                            lineHeight = 12.sp
+                        )
+                    }
                 }
             }
         }
         Spacer(Modifier.height(16.dp))
-        Button(onClick = onEnter, modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = cyan.copy(alpha = 0.15f)),
-            border = androidx.compose.foundation.BorderStroke(2.dp, cyan)
-        ) { Text("ENTRAR A LA APP", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
-    }
-}
-
-@Composable
-fun DashboardScreen(cyan: Color) {
-    Column(Modifier.fillMaxSize().background(Color(0xFF0B0B0B)).padding(12.dp)) {
-        // Top bar
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("IVANNA-FUSION", color = Color.White, fontWeight = FontWeight.Bold)
-            Row { repeat(2){ Box(Modifier.size(40.dp,20.dp).background(Color(0xFF111111)).border(1.dp, cyan.copy(0.3f))) } }
+        Button(
+            onClick = onEnter,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = CyanDim),
+            border = BorderStroke(2.dp, CyanGlow),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                "ENTRAR A LA APP",
+                color = TextPri,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.sp
+            )
         }
-        Spacer(Modifier.height(12.dp))
-        Section("GAIN STAGE", listOf(
-            "DRIVE" to "Saturación de entrada, agrega armónicos y calidez analógica",
-            "WET" to "Nivel de señal procesada en paralelo",
-            "MIX" to "Relación de mezcla entre señal seca y húmeda"
-        ), cyan)
-        Section("DSP ENGINE", listOf(
-            "ALPHA" to "Carácter del motor DSP A, textura y color",
-            "BETA" to "Carácter del motor DSP B, variante de modulación",
-            "GAMMA" to "Mezcla entre motor A y B, control de capas",
-            "FREQ" to "Frecuencia central del filtro/efecto, en Hz",
-            "RESONANCE" to "Factor Q o énfasis del filtro, realce selectivo"
-        ), cyan)
-        Section("EQ & OUTPUT", listOf(
-            "LOW" to "Estante de graves y subgraves, realce o corte",
-            "MID" to "Presencia de medios, cuerpo y definición",
-            "HIGH" to "Aire de frecuencias altas, brillo sedoso",
-            "PRESENCE" to "Excitador armónico superior, claridad y chispa",
-            "MASTER" to "Nivel de salida final general"
-        ), cyan)
+        Spacer(Modifier.height(16.dp))
     }
 }
 
+// ─── Dashboard ───────────────────────────────────────────────────────────────
 @Composable
-fun Section(title: String, items: List<Pair<String,String>>, cyan: Color) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp).border(1.dp, Color(0xFF222222), RoundedCornerShape(8.dp)).padding(8.dp)) {
-        Text(title, color = cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            items.forEach { (name, desc) ->
-                var value by remember { mutableStateOf(0f) }
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(70.dp)) {
-                    Text(String.format("%.1f dB", value*10-5), color = Color.White, fontSize = 10.sp)
-                    Slider(value = value, onValueChange = { value = it }, modifier = Modifier.height(100.dp), colors = SliderDefaults.colors(thumbColor = cyan, activeTrackColor = cyan))
-                    Text(name, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
-                    Text(desc, color = Color(0xFF888888), fontSize = 8.sp, textAlign = TextAlign.Center, lineHeight = 10.sp)
-                }
+fun DashboardScreen() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Carbon)
+            .windowInsetsPadding(WindowInsets.systemBars)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Surface2)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    "IVANNA-FUSION PRO",
+                    color = TextPri,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 14.sp,
+                    letterSpacing = 1.5.sp
+                )
+                Text("GORE TNS", color = CyanGlow, fontSize = 9.sp, letterSpacing = 1.sp)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                StatusDot(active = true, label = "DSP")
+                StatusDot(active = true, label = "EQ")
+                StatusDot(active = false, label = "FX")
             }
         }
+        // Body
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(vertical = 10.dp)
+        ) {
+            item {
+                DspSection(
+                    "GAIN STAGE",
+                    listOf(
+                        Triple("DRIVE",    0.65f, "Saturación de entrada"),
+                        Triple("WET",      0.50f, "Señal procesada"),
+                        Triple("MIX",      0.70f, "Seca / Húmeda")
+                    )
+                )
+            }
+            item {
+                DspSection(
+                    "DSP ENGINE",
+                    listOf(
+                        Triple("ALPHA",     0.50f, "Motor DSP A"),
+                        Triple("BETA",      0.50f, "Motor DSP B"),
+                        Triple("GAMMA",     0.50f, "Capas A/B"),
+                        Triple("FREQ",      0.40f, "Frec. central"),
+                        Triple("RESONANCE", 0.30f, "Factor Q")
+                    )
+                )
+            }
+            item {
+                DspSection(
+                    "EQ & OUTPUT",
+                    listOf(
+                        Triple("LOW",      0.55f, "Graves"),
+                        Triple("MID",      0.50f, "Medios"),
+                        Triple("HIGH",     0.45f, "Agudos"),
+                        Triple("PRESENCE", 0.60f, "Excitador"),
+                        Triple("MASTER",   0.75f, "Salida")
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun StatusDot(active: Boolean, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(if (active) CyanGlow else Color(0xFF333333))
+        )
+        Text(label, color = if (active) CyanGlow else Color(0xFF444444), fontSize = 7.sp)
+    }
+}
+
+@Composable
+fun DspSection(title: String, controls: List<Triple<String, Float, String>>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Border1, RoundedCornerShape(10.dp))
+            .background(Surface1, RoundedCornerShape(10.dp))
+            .padding(10.dp)
+    ) {
+        Text(
+            title,
+            color = CyanGlow,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.5.sp
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            controls.forEach { (name, initial, desc) ->
+                FaderControl(name = name, initialValue = initial, desc = desc)
+            }
+        }
+    }
+}
+
+@Composable
+fun FaderControl(name: String, initialValue: Float, desc: String) {
+    var value by remember { mutableFloatStateOf(initialValue) }
+    val dbVal = (value * 24f) - 12f   // -12 dB .. +12 dB
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(58.dp)
+    ) {
+        // dB readout
+        Text(
+            text = if (dbVal >= 0) "+%.1f".format(dbVal) else "%.1f".format(dbVal),
+            color = CyanGlow,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(Modifier.height(2.dp))
+        // Vertical fader via rotate + constrained height
+        Box(
+            modifier = Modifier
+                .width(36.dp)
+                .height(90.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Slider(
+                value = value,
+                onValueChange = { value = it },
+                modifier = Modifier
+                    .width(90.dp)
+                    .rotate(-90f),
+                colors = SliderDefaults.colors(
+                    thumbColor = CyanGlow,
+                    activeTrackColor = CyanGlow,
+                    inactiveTrackColor = Border1
+                )
+            )
+        }
+        Spacer(Modifier.height(2.dp))
+        Text(name, color = TextPri, fontSize = 10.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Text(desc, color = TextSec, fontSize = 7.sp, textAlign = TextAlign.Center, lineHeight = 9.sp)
     }
 }
