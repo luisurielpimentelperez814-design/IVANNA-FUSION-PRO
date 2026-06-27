@@ -15,16 +15,23 @@ add_library(
     dsp/GainStage.cpp
 )
 
-# FIX #9: flags de optimización centralizados aquí (no en build.gradle.kts).
-# -O3 -ffast-math activos en release; el build de debug recibe -O0 -g por defecto de CMake.
+# Flags comunes — válidos para todos los ABIs
 target_compile_options(ivanna_dsp PRIVATE
     -O3
-    -march=armv8-a
     -ffast-math
-    -fno-exceptions  # no se usan excepciones C++ en el DSP — reduce tamaño
+    -fno-exceptions
     -Wall
     -Wno-unused-result
 )
+
+# -march=armv8-a solo tiene sentido en ARM; en x86_64 el compilador lo rechaza.
+# ANDROID_ABI es la variable que el toolchain de NDK expone en cada subtarget.
+if(ANDROID_ABI STREQUAL "arm64-v8a")
+    target_compile_options(ivanna_dsp PRIVATE -march=armv8-a)
+elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+    target_compile_options(ivanna_dsp PRIVATE -march=armv7-a -mfpu=neon)
+endif()
+# x86_64 / x86: sin -march explícito — el compilador elige el más adecuado.
 
 find_library(log-lib log)
 find_library(android-lib android)
