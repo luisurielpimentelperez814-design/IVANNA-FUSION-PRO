@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Tema base para Compose puro. El proyecto no incluye Material Components
-         como dependencia directa, solo Compose + AppCompat (transitivo desde
-         activity-compose). Theme.AppCompat.DayNight.NoActionBar es lo que
-         corresponde. Compose maneja toda la paleta en código (MaterialTheme). -->
-    <style name="Theme.IVANNAFUSIONPRO" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <!-- Tema mínimo para Compose 100% puro.
+         Parent: plataforma Android — sin dependencia de librería.
+         Compose + enableEdgeToEdge() maneja todo lo demás en código.
+         AppCompat y MaterialComponents no son necesarios aquí. -->
+    <style name="Theme.IVANNAFUSIONPRO" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/black</item>
     </style>
 </resources>
