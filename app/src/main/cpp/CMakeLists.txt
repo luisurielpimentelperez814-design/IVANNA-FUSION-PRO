@@ -25,3 +25,14 @@ target_link_libraries(
 )
 
 target_include_directories(ivanna_dsp PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+# Optimizaciones arm64 (Snapdragon SM6375 y superiores).
+# -ffast-math + march=armv8-a habilita auto-vectorización NEON sin declararlo explícitamente.
+# NEON es obligatorio en aarch64 — no se declara con -mfpu/-mfloat-abi (esos son ARMv7).
+target_compile_options(ivanna_dsp PRIVATE
+    -O3
+    -march=armv8-a
+    -ffast-math
+    -funroll-loops
+    -fvisibility=hidden
+)

@@ -24,16 +24,17 @@ struct DSPParams {
 
 // Biquad coefficients
 struct Biquad {
-    double b0=1,b1=0,b2=0,a1=0,a2=0;
-    double x1=0,x2=0,y1=0,y2=0;
+    double b0=1,b1=0,b2=0,a1=0,a2=0;  // coeff en double (precisión en cálculo)
+    float  x1=0,x2=0,y1=0,y2=0;       // estado en float  (NEON-friendly, sin audible loss)
 
     inline float process(float x) {
-        double y = b0*x + b1*x1 + b2*x2 - a1*y1 - a2*y2;
-        x2=x1; x1=x; y2=y1; y1=y;
+        double y = b0*x + b1*(double)x1 + b2*(double)x2
+                 - a1*(double)y1 - a2*(double)y2;
+        x2=x1; x1=x; y2=y1; y1=(float)y;
         return (float)y;
     }
 
-    void reset() { x1=x2=y1=y2=0; }
+    void reset() { x1=x2=y1=y2=0.f; }
 
     // Peaking EQ
     void setPeaking(double freq, double Q, double dBgain, double sr) {

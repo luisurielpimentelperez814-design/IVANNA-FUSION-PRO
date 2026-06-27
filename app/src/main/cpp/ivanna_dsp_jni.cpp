@@ -17,15 +17,23 @@
 using namespace ivanna;
 
 // ─── DSP Engine singleton ─────────────────────────────────────────────────────
+// Scratch buffers pre-allocated: eliminan new[]/delete[] en el hot path de audio.
+// Capacidad: 4096 frames (AAudio/AudioTrack nunca entrega más en Android).
+static constexpr int kMaxFrames = 4096;
+
 struct DSPEngine {
-    std::mutex          mtx;
-    DSPParams           params;
-    ParametricEQ        eq;
-    Compressor          comp;
-    HarmonicExciter     exciter;
-    StereoWidener       widener;
-    GainStage           gain;
-    bool                ready = false;
+    std::mutex      mtx;
+    DSPParams       params;
+    ParametricEQ    eq;
+    Compressor      comp;
+    HarmonicExciter exciter;
+    StereoWidener   widener;
+    GainStage       gain;
+    bool            ready = false;
+
+    // Scratch — fijos en el struct, reutilizados cada llamada a nativeProcess
+    float scratchL[kMaxFrames];
+    float scratchR[kMaxFrames];
 
     void applyParams() {
         eq.setParams(params);
@@ -98,10 +106,12 @@ Java_com_ivanna_fusion_pro_DSPBridge_nativeProcess(
     jfloat* data = env->GetFloatArrayElements(buf, nullptr);
     if (!data) return;
 
-    // De-interleave
     int n = numFrames;
-    float* lBuf = new float[n];
-    float* rBuf = new float[n];
+    if (n > kMaxFrames) n = kMaxFrames;   // safety clamp
+
+    // De-interleave → scratch pre-alocado (sin new/delete en hot path)
+    float* lBuf = e.scratchL;
+    float* rBuf = e.scratchR;
     for (int i = 0; i < n; ++i) {
         lBuf[i] = data[i*2];
         rBuf[i] = data[i*2+1];
@@ -123,8 +133,6 @@ Java_com_ivanna_fusion_pro_DSPBridge_nativeProcess(
         data[i*2+1] = rBuf[i];
     }
 
-    delete[] lBuf;
-    delete[] rBuf;
     env->ReleaseFloatArrayElements(buf, data, 0);
 }
 
