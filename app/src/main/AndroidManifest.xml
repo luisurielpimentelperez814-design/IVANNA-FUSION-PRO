@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.NoActionBar">
+        android:theme="@style/Theme.IVANNAFUSIONPRO">
+        <!-- FIX #19: allowBackup=false — evita extracción de datos por ADB
+             (contradice los términos de licencia propietarios de la app).         -->
+        <!-- FIX #18: Theme.IVANNAFUSIONPRO definido en themes.xml — compatible
+             con Compose + Material3. El antiguo @android:style/Theme.Material.NoActionBar
+             causaba flash visual al iniciar y no tiene efecto real en Compose.    -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|keyboardHidden|screenSize|screenLayout">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

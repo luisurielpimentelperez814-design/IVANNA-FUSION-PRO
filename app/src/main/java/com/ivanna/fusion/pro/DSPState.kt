@@ -4,6 +4,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+// FIX #11: kotlin.math en lugar de java.lang.Math (idiomático Kotlin)
+import kotlin.math.log10
+import kotlin.math.pow
 
 /**
  * Observable DSP parameter state.
@@ -50,17 +53,17 @@ class DSPState : ViewModel() {
         )
     }
 
-    /** Slider helper: maps 0..1 → -12..+12 dB */
     companion object {
         fun sliderToDb(v: Float): Float = v * 24f - 12f
         fun dbToSlider(db: Float): Float = (db + 12f) / 24f
 
+        // FIX #11: kotlin.math.pow — reemplaza Math.pow (Java)
         /** Maps 0..1 slider → 20..20000 Hz (log) */
         fun sliderToFreq(v: Float): Float =
-            (20f * Math.pow(1000.0, v.toDouble())).toFloat()
+            (20f * 1000.0.pow(v.toDouble())).toFloat()
 
         /** Maps 0..1 slider → 0.1..10 Q (log) */
         fun sliderToQ(v: Float): Float =
-            (0.1f * Math.pow(100.0, v.toDouble())).toFloat()
+            (0.1f * 100.0.pow(v.toDouble())).toFloat()
     }
 }

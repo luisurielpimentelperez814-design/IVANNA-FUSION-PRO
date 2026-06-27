@@ -23,6 +23,9 @@ object DSPBridge {
         }
     }
 
+    // FIX #15: expuesto al UI para mostrar banner de error si falla el load
+    val isLoaded: Boolean get() = loaded
+
     fun init(sampleRate: Int = 48000) {
         if (loaded) nativeInit(sampleRate)
     }

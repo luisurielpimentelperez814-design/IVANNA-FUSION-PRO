@@ -15,12 +15,15 @@ android {
         versionName = "1.2-PRO-DSP"
 
         ndk {
-            abiFilters += listOf("arm64-v8a")
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
 
         externalNativeBuild {
             cmake {
-                cppFlags("-std=c++17 -O2 -ffast-math")
+                // FIX #9: solo el estándar aquí — las flags de optimización
+                // (-O3, -march, -ffast-math) van exclusivamente en CMakeLists.txt
+                // para evitar duplicados y colisiones de flags.
+                cppFlags("-std=c++17")
                 arguments("-DANDROID_STL=c++_shared")
             }
         }
@@ -35,7 +38,13 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // FIX #7: R8 + shrink resources para APK más pequeño y ofuscado
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -76,6 +85,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
-    implementation("androidx.media3:media3-exoplayer:1.4.0")
-    implementation("androidx.media3:media3-ui:1.4.0")
+    // FIX #8: Media3 eliminado — ExoPlayer/PlayerView no se usan en el código.
+    // Ahorro estimado: ~2.8 MB en el APK release.
+    // Re-agregar cuando se implemente reproducción de audio.
 }

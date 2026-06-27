@@ -21,25 +21,28 @@ void Compressor::setParams(const DSPParams& p) {
 }
 
 void Compressor::process(float* left, float* right, int frames) {
-    constexpr float LOG2DB  = 8.6858896381f; // 20/ln(10)
-    constexpr float DB2LIN  = 0.11512925465f; // ln(10)/20
+    // FIX #6: renombrado LOG2DB → kLn2dB.
+    // El valor 20/ln(10) convierte logaritmo NATURAL a dB.
+    // "LOG2DB" sugería log-base-2, lo que era engañoso y propenso a errores.
+    constexpr float kLn2dB  = 8.6858896381f; // 20/ln(10)
+    constexpr float kDB2Lin = 0.11512925465f; // ln(10)/20
 
     for (int i = 0; i < frames; ++i) {
         float peak = std::max(std::fabs(left[i]), std::fabs(right[i]));
         if (peak < 1e-6f) peak = 1e-6f;
 
-        // Level detector (envelope follower)
+        // Level detector — peak envelope follower
         if (peak > env_)
             env_ = attackCoef_  * env_ + (1.f - attackCoef_)  * peak;
         else
             env_ = releaseCoef_ * env_ + (1.f - releaseCoef_) * peak;
 
-        float envDb = LOG2DB * std::log(env_);
+        float envDb = kLn2dB * std::log(env_);
         float gainDb = 0.f;
         if (envDb > threshold_)
             gainDb = (threshold_ - envDb) * (1.f - 1.f/ratio_);
 
-        float lin = makeupGain_ * std::exp(gainDb * DB2LIN);
+        float lin = makeupGain_ * std::exp(gainDb * kDB2Lin);
         left[i]  *= lin;
         right[i] *= lin;
     }

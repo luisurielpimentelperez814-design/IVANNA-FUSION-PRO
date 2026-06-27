@@ -3,7 +3,10 @@
 
 namespace ivanna {
 
-// RMS feed-forward compressor driven by alpha/beta/gamma params
+// Peak feed-forward compressor driven by alpha/beta/gamma params.
+// FIX #5: corregido de "RMS" a "peak" — la implementación usa
+// std::max(|L|, |R|) como detector de nivel, no RMS.
+// Si se quiere RMS real: env_ += (peak*peak - env_) * coef; gain = sqrtf(env_).
 class Compressor {
 public:
     void setParams(const DSPParams& p);

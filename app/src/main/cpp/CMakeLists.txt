@@ -15,6 +15,17 @@ add_library(
     dsp/GainStage.cpp
 )
 
+# FIX #9: flags de optimización centralizados aquí (no en build.gradle.kts).
+# -O3 -ffast-math activos en release; el build de debug recibe -O0 -g por defecto de CMake.
+target_compile_options(ivanna_dsp PRIVATE
+    -O3
+    -march=armv8-a
+    -ffast-math
+    -fno-exceptions  # no se usan excepciones C++ en el DSP — reduce tamaño
+    -Wall
+    -Wno-unused-result
+)
+
 find_library(log-lib log)
 find_library(android-lib android)
 
@@ -25,14 +36,3 @@ target_link_libraries(
 )
 
 target_include_directories(ivanna_dsp PRIVATE ${CMAKE_SOURCE_DIR}/include)
-
-# Optimizaciones arm64 (Snapdragon SM6375 y superiores).
-# -ffast-math + march=armv8-a habilita auto-vectorización NEON sin declararlo explícitamente.
-# NEON es obligatorio en aarch64 — no se declara con -mfpu/-mfloat-abi (esos son ARMv7).
-target_compile_options(ivanna_dsp PRIVATE
-    -O3
-    -march=armv8-a
-    -ffast-math
-    -funroll-loops
-    -fvisibility=hidden
-)

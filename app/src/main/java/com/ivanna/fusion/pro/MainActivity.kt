@@ -1,5 +1,6 @@
 package com.ivanna.fusion.pro
 
+import android.media.AudioManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -23,6 +24,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource          // FIX #12: stringResource() idiomático
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -31,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlin.math.log10                              // FIX #11: kotlin.math, no java.lang.Math
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 private val Carbon   = Color(0xFF0B0B0B)
@@ -48,7 +51,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        DSPBridge.init(48000)
+        // FIX #4: sample rate real del dispositivo (44100 o 48000 según hardware).
+        // Con 48000 hardcodeado, los biquads de EQ y el compresor quedaban
+        // desafinados en dispositivos a 44100 Hz.
+        val am = getSystemService(AUDIO_SERVICE) as AudioManager
+        val sr = am.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)
+                     ?.toIntOrNull() ?: 48000
+        DSPBridge.init(sr)
         setContent { IvannaApp() }
     }
 }
@@ -80,10 +89,11 @@ fun SplashScreen(onAccept: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(horizontal = 28.dp)
         ) {
-            Text("IVANNA-FUSION PRO", color = TextPri, fontSize = 30.sp,
+            // FIX #12: stringResource() — evita duplicación y permite localización
+            Text(stringResource(R.string.app_name), color = TextPri, fontSize = 30.sp,
                 fontWeight = FontWeight.ExtraBold, letterSpacing = 3.sp)
             Spacer(Modifier.height(4.dp))
-            Text("GORE TNS · LUPP-OR9", color = CyanGlow, fontSize = 11.sp, letterSpacing = 2.sp)
+            Text(stringResource(R.string.brand_tag), color = CyanGlow, fontSize = 11.sp, letterSpacing = 2.sp)
             Spacer(Modifier.height(8.dp))
             Box(Modifier.height(1.dp).width(220.dp).background(
                 Brush.horizontalGradient(listOf(Color.Transparent, CyanGlow, Color.Transparent))
@@ -96,14 +106,11 @@ fun SplashScreen(onAccept: () -> Unit) {
                     .background(Surface2, RoundedCornerShape(12.dp))
                     .padding(16.dp)
             ) {
-                Text("TÉRMINOS Y CONDICIONES", color = CyanGlow, fontSize = 13.sp,
+                Text(stringResource(R.string.terms_title), color = CyanGlow, fontSize = 13.sp,
                     fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    "ADVERTENCIA: Queda estrictamente prohibida la duplicación, falsificación, " +
-                    "distribución no autorizada o ingeniería inversa de este software. " +
-                    "El incumplimiento conlleva acciones legales bajo las leyes de propiedad " +
-                    "intelectual aplicables. Uso exclusivo del titular de la licencia.",
+                    stringResource(R.string.terms_warning),
                     color = TextMid, fontSize = 13.sp, lineHeight = 19.sp,
                     textAlign = TextAlign.Justify
                 )
@@ -116,7 +123,7 @@ fun SplashScreen(onAccept: () -> Unit) {
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
-                Text("ACEPTAR Y CONTINUAR", color = TextPri,
+                Text(stringResource(R.string.accept), color = TextPri,
                     fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
             }
         }
@@ -139,10 +146,10 @@ fun IntroScreen(onEnter: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(28.dp))
-        Text("EXPERIENCE THE LEGENDS", color = TextPri, fontSize = 20.sp,
+        Text(stringResource(R.string.experience), color = TextPri, fontSize = 20.sp,
             fontWeight = FontWeight.ExtraBold, letterSpacing = 1.5.sp)
         Spacer(Modifier.height(4.dp))
-        Text("Audio procesado por IVANNA-FUSION PRO", color = TextSec, fontSize = 11.sp)
+        Text("Audio procesado por ${stringResource(R.string.app_name)}", color = TextSec, fontSize = 11.sp)
         Spacer(Modifier.height(16.dp))
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
@@ -176,7 +183,7 @@ fun IntroScreen(onEnter: () -> Unit) {
             border = BorderStroke(2.dp, CyanGlow),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Text("ENTRAR A LA APP", color = TextPri, fontSize = 16.sp,
+            Text(stringResource(R.string.enter_app), color = TextPri, fontSize = 16.sp,
                 fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
         }
         Spacer(Modifier.height(16.dp))
@@ -186,6 +193,21 @@ fun IntroScreen(onEnter: () -> Unit) {
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 @Composable
 fun DashboardScreen(dsp: DSPState) {
+    // FIX #16: StatusDots reflejan estado real de parámetros
+    val eqActive  = dsp.low != 0f || dsp.mid != 0f || dsp.high != 0f || dsp.presence != 0f
+    val fxActive  = dsp.wet > 0.01f
+
+    // FIX #15: banner si la lib nativa no cargó
+    if (!DSPBridge.isLoaded) {
+        Box(
+            Modifier.fillMaxWidth().background(Color(0xFF330000)).padding(8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("⚠ libivanna_dsp.so no disponible — DSP inactivo",
+                color = Color(0xFFFF4444), fontSize = 11.sp)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -202,14 +224,14 @@ fun DashboardScreen(dsp: DSPState) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text("IVANNA-FUSION PRO", color = TextPri, fontWeight = FontWeight.ExtraBold,
+                Text(stringResource(R.string.app_name), color = TextPri, fontWeight = FontWeight.ExtraBold,
                     fontSize = 14.sp, letterSpacing = 1.5.sp)
                 Text("GORE TNS", color = CyanGlow, fontSize = 9.sp, letterSpacing = 1.sp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                StatusDot(active = true,  label = "DSP")
-                StatusDot(active = true,  label = "EQ")
-                StatusDot(active = false, label = "FX")
+                StatusDot(active = DSPBridge.isLoaded, label = "DSP")
+                StatusDot(active = eqActive,           label = "EQ")
+                StatusDot(active = fxActive,           label = "FX")
             }
         }
 
@@ -244,18 +266,17 @@ fun DashboardScreen(dsp: DSPState) {
                     FaderControl("GAMMA", dsp.gamma, "Capas A/B") { v ->
                         dsp.gamma = v; dsp.pushToNative()
                     }
-                    // FREQ: log-mapped display
+                    // FIX #11: kotlin.math.log10 en lugar de Math.log10 (Java)
                     val freqSlider = remember(dsp.freq) {
-                        (Math.log10(dsp.freq.toDouble() / 20.0) / Math.log10(1000.0)).toFloat()
+                        (log10(dsp.freq.toDouble() / 20.0) / log10(1000.0)).toFloat()
                             .coerceIn(0f, 1f)
                     }
                     FaderControl("FREQ", freqSlider,
                         "${dsp.freq.toInt()} Hz") { v ->
                         dsp.freq = DSPState.sliderToFreq(v); dsp.pushToNative()
                     }
-                    // RESONANCE: log-mapped
                     val qSlider = remember(dsp.resonance) {
-                        (Math.log10(dsp.resonance.toDouble() / 0.1) / Math.log10(100.0)).toFloat()
+                        (log10(dsp.resonance.toDouble() / 0.1) / log10(100.0)).toFloat()
                             .coerceIn(0f, 1f)
                     }
                     FaderControl("RES", qSlider,

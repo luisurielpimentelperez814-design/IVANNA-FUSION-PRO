@@ -7,15 +7,15 @@ void StereoWidener::setParams(const DSPParams& p) {
     width_ = p.gamma * 2.f;
 }
 
+// FIX #10: eliminada variable 'coefM = 1.f' declarada pero nunca usada.
+// Causaba warning -Wunused-variable (potencial -Werror en CI).
 void StereoWidener::process(float* left, float* right, int frames) {
     const float w = width_;
-    const float coefM = 1.f;
-    const float coefS = w;
     for (int i = 0; i < frames; ++i) {
         float m = (left[i] + right[i]) * 0.5f;
         float s = (left[i] - right[i]) * 0.5f;
-        left[i]  = m + coefS * s;
-        right[i] = m - coefS * s;
+        left[i]  = m + w * s;
+        right[i] = m - w * s;
     }
 }
 

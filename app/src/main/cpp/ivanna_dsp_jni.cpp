@@ -1,7 +1,9 @@
 #include <jni.h>
 #include <android/log.h>
+#include <atomic>   // FIX #3: std::atomic<bool> para e.ready
 #include <memory>
 #include <mutex>
+#include <vector>   // FIX #1: local buffers en nativeProcess (sin race entre threads)
 
 #include "include/dsp_types.h"
 #include "include/ParametricEQ.h"
@@ -16,24 +18,23 @@
 
 using namespace ivanna;
 
-// ─── DSP Engine singleton ─────────────────────────────────────────────────────
-// Scratch buffers pre-allocated: eliminan new[]/delete[] en el hot path de audio.
-// Capacidad: 4096 frames (AAudio/AudioTrack nunca entrega más en Android).
 static constexpr int kMaxFrames = 4096;
 
+// ─── DSP Engine singleton ─────────────────────────────────────────────────────
 struct DSPEngine {
-    std::mutex      mtx;
-    DSPParams       params;
-    ParametricEQ    eq;
-    Compressor      comp;
-    HarmonicExciter exciter;
-    StereoWidener   widener;
-    GainStage       gain;
-    bool            ready = false;
+    std::mutex              mtx;
+    DSPParams               params;
+    ParametricEQ            eq;
+    Compressor              comp;
+    HarmonicExciter         exciter;
+    StereoWidener           widener;
+    GainStage               gain;
+    // FIX #3: atomic — se puede leer sin lock sin UB
+    std::atomic<bool>       ready{false};
 
-    // Scratch — fijos en el struct, reutilizados cada llamada a nativeProcess
-    float scratchL[kMaxFrames];
-    float scratchR[kMaxFrames];
+    // scratchL/scratchR eliminados del struct (FIX #1):
+    // eran la causa de la race condition cuando dos threads llamaban
+    // nativeProcess simultáneamente. Ahora se usan buffers locales por llamada.
 
     void applyParams() {
         eq.setParams(params);
@@ -41,16 +42,17 @@ struct DSPEngine {
         exciter.setParams(params);
         widener.setParams(params);
         gain.setParams(params);
-        ready = true;
+        ready.store(true, std::memory_order_release);
     }
 };
 
-static std::unique_ptr<DSPEngine> gEngine;
-
 // ─── JNI helpers ─────────────────────────────────────────────────────────────
+// FIX #2: static local — C++11 garantiza inicialización atómica (§6.7).
+// El patrón gEngine + if(!gEngine) era una initialization race si dos
+// funciones JNI se llamaban concurrentemente antes del primer init.
 static DSPEngine& engine() {
-    if (!gEngine) gEngine = std::make_unique<DSPEngine>();
-    return *gEngine;
+    static auto g = std::make_unique<DSPEngine>();
+    return *g;
 }
 
 extern "C" {
@@ -101,17 +103,20 @@ Java_com_ivanna_fusion_pro_DSPBridge_nativeProcess(
     jfloatArray buf, jint numFrames
 ) {
     auto& e = engine();
-    if (!e.ready) return;
+    // FIX #3: atomic load — seguro sin lock
+    if (!e.ready.load(std::memory_order_acquire)) return;
 
     jfloat* data = env->GetFloatArrayElements(buf, nullptr);
     if (!data) return;
 
-    int n = numFrames;
-    if (n > kMaxFrames) n = kMaxFrames;   // safety clamp
+    const int n = (numFrames > kMaxFrames) ? kMaxFrames : numFrames;
 
-    // De-interleave → scratch pre-alocado (sin new/delete en hot path)
-    float* lBuf = e.scratchL;
-    float* rBuf = e.scratchR;
+    // FIX #1: buffers locales por llamada — cada thread tiene su propia pila.
+    // Si dos callbacks de AudioTrack llaman nativeProcess en paralelo,
+    // no comparten memoria: no hay race condition.
+    std::vector<float> lBuf(n), rBuf(n);
+
+    // De-interleave (fuera del lock — solo accede a memoria local)
     for (int i = 0; i < n; ++i) {
         lBuf[i] = data[i*2];
         rBuf[i] = data[i*2+1];
@@ -119,15 +124,15 @@ Java_com_ivanna_fusion_pro_DSPBridge_nativeProcess(
 
     {
         std::lock_guard<std::mutex> lk(e.mtx);
-        e.gain.processInput(lBuf, rBuf, n);
-        e.exciter.process(lBuf, rBuf, n);
-        e.comp.process(lBuf, rBuf, n);
-        e.eq.process(lBuf, rBuf, n);
-        e.widener.process(lBuf, rBuf, n);
-        e.gain.processOutput(lBuf, rBuf, n);
+        e.gain.processInput(lBuf.data(), rBuf.data(), n);
+        e.exciter.process(lBuf.data(), rBuf.data(), n);
+        e.comp.process(lBuf.data(), rBuf.data(), n);
+        e.eq.process(lBuf.data(), rBuf.data(), n);
+        e.widener.process(lBuf.data(), rBuf.data(), n);
+        e.gain.processOutput(lBuf.data(), rBuf.data(), n);
     }
 
-    // Re-interleave
+    // Re-interleave (fuera del lock — solo memoria local)
     for (int i = 0; i < n; ++i) {
         data[i*2]   = lBuf[i];
         data[i*2+1] = rBuf[i];
@@ -144,14 +149,15 @@ Java_com_ivanna_fusion_pro_DSPBridge_nativeReset(JNIEnv*, jobject) {
     e.eq.reset();
     e.comp.reset();
     e.exciter.reset();
-    e.ready = false;
+    e.gain.reset();
+    e.ready.store(false, std::memory_order_release);
     LOGI("DSP engine reset");
 }
 
 // ─── Version ──────────────────────────────────────────────────────────────────
 JNIEXPORT jstring JNICALL
 Java_com_ivanna_fusion_pro_DSPBridge_nativeVersion(JNIEnv* env, jobject) {
-    return env->NewStringUTF("IVANNA-FUSION-PRO DSP v1.1 | GORE TNS");
+    return env->NewStringUTF("IVANNA-FUSION-PRO DSP v1.2 | GORE TNS");
 }
 
 } // extern "C"
